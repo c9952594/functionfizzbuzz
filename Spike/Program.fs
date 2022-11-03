@@ -3,7 +3,7 @@
 let nestedIfs input = 
     for x in input do
         if ((x % 5 = 0) && (x % 3 = 0))
-        then 
+        then
             printfn "FizzBuzz"
         else 
             if ((x % 3 = 0))
@@ -151,6 +151,34 @@ let folding inputs  =
     inputs
     |> Seq.map applyRules
 
+let folding_single_func inputs  =
+    let divisibleBy current x text  y = 
+        if (y % x = 0)
+        then current + text
+        else text
+
+    let rules =
+        [
+            (divisibleBy "Fizz" 3)
+            
+            (divisibleBy "Buzz" 5)
+
+            (fun current value ->
+                if (current = "")
+                then sprintf "%i" value
+                else current
+            )
+        ]
+
+    inputs
+    |> Seq.map (fun value ->
+        rules
+        |> Seq.fold
+            (fun combined rule -> 
+                rule combined value)
+            ""
+    )
+
 
 input
 // nestedIfs
@@ -159,5 +187,6 @@ input
 //|> pattern_matching_cleaned
 //|> pattern_matching_in_match_parameter
 //|> active_pattern_match
-|> folding
+// |> folding
+|> folding_single_func
 |> Seq.iter (printfn "%s")
