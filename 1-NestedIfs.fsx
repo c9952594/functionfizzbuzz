@@ -20,9 +20,6 @@ module Stateful =
             binder result |> run state')
 
 type StatefulBuilder() =
-    // let (>>=) stateful binder = 
-    //     bind binder stateful
-
     member __.Return (result) = 
         Stateful.ret result
 
@@ -34,8 +31,7 @@ type StatefulBuilder() =
     
     member __.Zero = 
         Stateful.ret ()
-
-    // do!
+        
     member __.Combine (statefulA, statefulB) = 
         Stateful.bind (fun _ -> statefulB) statefulA
 
@@ -116,10 +112,15 @@ module AppliedRules =
 
     let ret rules =
         rules
-        |> List.map (fun (AppliedRules rules) -> rules |> List.rev |> String.concat ", ")
+        |> List.map (fun (AppliedRules rules) -> rules 
+        |> List.rev 
+        |> String.concat ", ")
 
     let bind binder (AppliedRules rules) =
-        AppliedRules (rules |> List.map binder |> List.concat)
+        AppliedRules (
+            rules 
+            |> List.map binder 
+            |> List.concat)
 
 type AppliedRulesBuilder() =
     member __.Return (result) = 
@@ -134,7 +135,7 @@ type AppliedRulesBuilder() =
     member __.Zero = 
         Stateful.ret ()
 
-    // do!
+p    // do!
     member __.Combine (statefulA, statefulB) = 
         Stateful.bind (fun _ -> statefulB) statefulA
 
