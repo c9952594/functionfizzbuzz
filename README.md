@@ -542,11 +542,6 @@ let (<=>)
     =
     f appliedRules
 
-type RulesBuilder() =
-    member __.Return(x) = Some x
-
-let rules = RulesBuilder()
-
 let fizzbuzz value = 
     value
     <!> isDivisibleBy "Fizz" 3
@@ -559,4 +554,90 @@ let fizzbuzz value =
 [1..100]
 |> Seq.map fizzbuzz
 |> Seq.iter (printfn "%s")
+```
+
+## Using computation expression
+
+
+### State monad
+
+```fsharp
+type Stateful<'state, 'result> =
+    | Stateful of ('state -> 'result * 'state)
+
+type StatefulBuilder() =
+    let return' result = 
+        fun state -> 
+            result, state
+        |> Stateful
+
+    let bind nextStateful leftStateful =
+        let run (Stateful stateful) state = 
+                stateful state
+
+        fun state ->
+            let (result, stateAfterLeft) = 
+                run leftStateful state
+
+            run (nextStateful result) stateAfterLeft
+        |> Stateful 
+
+    member _.Return result =
+        return' result
+
+    member _.ReturnFrom stateful = 
+        stateful
+
+    member _.Bind (stateful, binder) = 
+        bind binder stateful
+    
+    member _.Zero = 
+        return' ()
+
+    member _.Combine (statefulA, statefulB) = 
+        bind (fun _ -> statefulB) statefulA
+
+    member _.Delay runRuleFunc = 
+        runRuleFunc()
+
+let state = StatefulBuilder()
+
+```
+
+### Solution
+
+```fsharp
+let divisibleBy divisor text value =
+    fun appliedRules ->        
+        if (value % divisor = 0)
+        then (Some text, appliedRules @ [text])
+        else (None, appliedRules)
+    |> Stateful
+
+let returnValueIfNoRulesApplied value =
+    fun appliedRules ->
+        match appliedRules with
+        | [] -> 
+            let text = (string value)
+            (Some text, [text])
+        | _ ->
+            (None, appliedRules)
+    |> Stateful
+
+let computation i =
+    state {
+        let! _ = (divisibleBy 3 "Fizz") i
+        let! _ = (divisibleBy 5 "Buzz") i
+        return! (returnValueIfNoRulesApplied i)
+    }
+
+let fizzbuzz i = 
+    computation i
+    |> (fun (Stateful expression) -> expression [])
+    |> snd // Just the final state
+    |> String.concat ""
+
+[1..100]
+|> Seq.map fizzbuzz
+|> Seq.iter (printfn "%A")
 ```
